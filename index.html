@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f3ee; --surface: #ffffff; --border: rgba(0,0,0,0.1);
+    --text: #1a1a1a; --muted: #888; --accent: #2d6a4f; --accent-light: #e8f5e9;
+    --booked: #c0392b; --booked-light: #fdecea; --pill-bg: #f0ece4;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 100; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 20px; height: 20px; fill: white; }
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  header span { font-size: 13px; color: var(--muted); margin-left: 4px; }
+  .conn-badge { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 20px; background: var(--pill-bg); color: var(--muted); }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .conn-badge.connected { background: var(--accent-light); color: var(--accent); }
+  .conn-badge.connected .conn-dot { background: var(--accent); }
+  .conn-badge.error { background: var(--booked-light); color: var(--booked); }
+  .conn-badge.error .conn-dot { background: var(--booked); }
+
+  .date-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 32px; display: flex; gap: 8px; overflow-x: auto; }
+  .date-chip { padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.15s; flex-shrink: 0; }
+  .date-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .date-chip:hover:not(.active) { background: var(--pill-bg); color: var(--text); }
+
+  .main { display: flex; min-height: calc(100vh - 113px); }
+
+  .sidebar { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 0; }
+  .sidebar-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 0 20px 10px; }
+  .facility-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 20px; border: none; background: transparent; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); text-align: left; transition: background 0.12s; border-left: 3px solid transparent; }
+  .facility-btn:hover { background: var(--bg); }
+  .facility-btn.active { background: var(--accent-light); border-left-color: var(--accent); color: var(--accent); font-weight: 500; }
+  .facility-icon { font-size: 18px; width: 24px; text-align: center; }
+  .count-badge { background: var(--pill-bg); color: var(--muted); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: auto; }
+  .count-badge.has-available { background: var(--accent-light); color: var(--accent); }
+
+  .content { flex: 1; padding: 28px 32px; overflow-y: auto; }
+  .content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .content-title { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .content-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .legend { display: flex; gap: 16px; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-dot.av { background: var(--accent); }
+  .legend-dot.bk { background: var(--booked); }
+
+  .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+  .slot-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: box-shadow 0.15s, transform 0.12s; }
+  .slot-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .slot-time { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .slot-status { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px; }
+  .slot-status.available { color: var(--accent); }
+  .slot-status.booked { color: var(--booked); }
+  .slot-booker { display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--booked-light); border-radius: 8px; margin-bottom: 12px; }
+  .booker-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--booked); color: white; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .booker-name { font-size: 13px; font-weight: 500; }
+  .booker-phone { font-size: 11px; color: var(--muted); }
+
+  .book-btn { width: 100%; padding: 9px; border-radius: 8px; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .book-btn.available { background: var(--accent); color: white; }
+  .book-btn.available:hover { background: #235a3e; }
+  .book-btn.booked { background: var(--booked-light); color: var(--booked); cursor: not-allowed; opacity: 0.7; }
+
+  .skeleton { background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 8px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .skeleton-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .sk-time { height: 18px; width: 70%; margin-bottom: 10px; }
+  .sk-status { height: 12px; width: 40%; margin-bottom: 14px; }
+  .sk-btn { height: 36px; width: 100%; }
+
+  .error-box { background: var(--booked-light); border: 1px solid rgba(192,57,43,0.2); border-radius: 12px; padding: 20px; color: var(--booked); font-size: 14px; }
+  .error-box strong { display: block; margin-bottom: 6px; font-size: 15px; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border-radius: 16px; padding: 28px; width: 380px; max-width: 90vw; position: relative; animation: popIn 0.2s ease; }
+  @keyframes popIn { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-close { position: absolute; top: 16px; right: 16px; border: none; background: var(--bg); border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .modal-meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .modal-tag { display: inline-block; background: var(--accent-light); color: var(--accent); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; margin-bottom: 16px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
+  .form-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.15s; }
+  .form-input:focus { border-color: var(--accent); background: white; }
+  .confirm-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: background 0.15s, opacity 0.15s; }
+  .confirm-btn:hover:not(:disabled) { background: #235a3e; }
+  .confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .success-toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 500; z-index: 9999; transition: transform 0.3s ease; white-space: nowrap; }
+  .success-toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+  </div>
+  <div><h1>CourtBook <span>· Live</span></h1></div>
+  <div class="conn-badge" id="connBadge">
+    <div class="conn-dot"></div>
+    Connecting…
+  </div>
+</header>
+
+<div class="date-bar" id="dateBar"></div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-label">Facilities</div>
+    <div id="facilityList"></div>
+  </div>
+  <div class="content">
+    <div class="content-header">
+      <div>
+        <div class="content-title" id="contentTitle">Tennis</div>
+        <div class="content-subtitle" id="contentSubtitle">Loading slots…</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot av"></div> Available</div>
+        <div class="legend-item"><div class="legend-dot bk"></div> Booked</div>
+      </div>
+    </div>
+    <div class="slots-grid" id="slotsGrid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>Reserve Slot</h2>
+    <div class="modal-meta" id="modalMeta"></div>
+    <span class="modal-tag" id="modalTag"></span>
+    <div class="form-group">
+      <label class="form-label">Your Name</label>
+      <input class="form-input" id="inputName" type="text" placeholder="e.g. Rahul Sharma" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone (optional)</label>
+      <input class="form-input" id="inputPhone" type="tel" placeholder="e.g. 9876543210" />
+    </div>
+    <button class="confirm-btn" id="confirmBtn" onclick="confirmBooking()">Confirm Booking</button>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+// ─── Supabase Config ───────────────────────────────────────────────
+const SUPABASE_URL = 'https://meuxtbdyvnssmfloyaer.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_u1WrBBhaEz_ijf61EMcbig_Kvubjg2X';
+const API = `${SUPABASE_URL}/rest/v1`;
+const headers = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal',
+};
+
+// ─── Facilities ────────────────────────────────────────────────────
+const facilities = [
+  { id: 'Tennis',           name: 'Tennis',           icon: '🎾' },
+  { id: 'Basketball Court', name: 'Basketball Court', icon: '🏀' },
+  { id: 'Squash Court',     name: 'Squash Court',     icon: '🟡' },
+  { id: 'Table Tennis',     name: 'Table Tennis',     icon: '🏓' },
+  { id: 'Yoga Room',        name: 'Yoga Room',        icon: '🧘' },
+  { id: 'Badminton',        name: 'Badminton',        icon: '🏸' },
+];
+
+// ─── Date Helpers ─────────────────────────────────────────────────
+function generateDates() {
+  const today = new Date();
+  return Array.from({ length: 2 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    return d;
+  });
+}
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function displayDate(d) {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const isToday = formatDate(d) === formatDate(new Date());
+  return isToday
+    ? `Today, ${d.getDate()} ${months[d.getMonth()]}`
+    : `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+const dates = generateDates();
+
+// ─── State ────────────────────────────────────────────────────────
+const state = {
+  selectedFacility: 'Tennis',
+  selectedDate: formatDate(dates[0]),
+  slots: [],
+  loading: false,
+  error: null,
+  pendingSlot: null,
+  localNames: {},
+};
+
+// ─── Supabase Calls ───────────────────────────────────────────────
+async function fetchSlots(facility, date) {
+  const encoded = encodeURIComponent(facility);
+  const res = await fetch(
+    `${API}/slots?facility=eq.${encoded}&booking_date=eq.${date}&order=time_slot.asc`,
+    { headers }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status} — check your Supabase RLS policies`);
+  const slots = await res.json();
+  slots.sort((a, b) => parseSlotHour(a.time_slot) - parseSlotHour(b.time_slot));
+  return slots;
+}
+
+function parseSlotHour(timeStr) {
+  if (!timeStr) return 0;
+  // Format: "6-7 AM", "11-12 PM", "12-1 PM"
+  // AM/PM refers to the END hour, not the start hour
+  const ampm = timeStr.match(/(AM|PM)/i);
+  if (!ampm) return 0;
+  const isPM = ampm[1].toUpperCase() === 'PM';
+  const startHour = parseInt(timeStr.match(/^(\d+)/)[1]);
+  const endHour = parseInt(timeStr.match(/^(\d+)-(\d+)/)[2]);
+  // If end hour is 12 and suffix is PM, start hour is 11 AM (not PM)
+  // e.g. "11-12 PM" means 11:00 AM to 12:00 PM
+  let h = startHour;
+  if (isPM && endHour === 12) {
+    // start is always AM in this case (11 AM -> 12 PM)
+    h = startHour; // 11, no adjustment needed
+  } else if (isPM && h !== 12) {
+    h += 12;
+  } else if (!isPM && h === 12) {
+    h = 0;
+  }
+  return h;
+}
+
+async function updateSlotStatus(id, status) {
+  const res = await fetch(`${API}/slots?id=eq.${id}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} — could not update slot`);
+}
+
+// ─── Connection Badge ─────────────────────────────────────────────
+function setConnectionBadge(status) {
+  const badge = document.getElementById('connBadge');
+  badge.className = 'conn-badge';
+  if (status === 'connected') {
+    badge.classList.add('connected');
+    badge.innerHTML = '<div class="conn-dot"></div> Connected';
+  } else if (status === 'error') {
+    badge.classList.add('error');
+    badge.innerHTML = '<div class="conn-dot"></div> Connection Error';
+  } else {
+    badge.innerHTML = '<div class="conn-dot"></div> Connecting…';
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────
+function renderDateBar() {
+  document.getElementById('dateBar').innerHTML = dates.map(d => {
+    const key = formatDate(d);
+    return `<button class="date-chip ${key === state.selectedDate ? 'active' : ''}" onclick="selectDate('${key}')">${displayDate(d)}</button>`;
+  }).join('');
+}
+
+function renderSkeleton() {
+  document.getElementById('slotsGrid').innerHTML = Array.from({ length: 15 }, () => `
+    <div class="skeleton-card">
+      <div class="skeleton sk-time"></div>
+      <div class="skeleton sk-status"></div>
+      <div class="skeleton sk-btn"></div>
+    </div>`).join('');
+}
+
+function renderSidebar() {
+  document.getElementById('facilityList').innerHTML = facilities.map(f => {
+    const av = f.id === state.selectedFacility
+      ? state.slots.filter(s => s.status.toLowerCase() !== 'booked').length
+      : '…';
+    return `<button class="facility-btn ${f.id === state.selectedFacility ? 'active' : ''}" onclick="selectFacility('${f.id}')">
+      <span class="facility-icon">${f.icon}</span>${f.name}
+      <span class="count-badge ${av > 0 ? 'has-available' : ''}">${av}</span>
+    </button>`;
+  }).join('');
+}
+
+function renderSlots() {
+  const f = facilities.find(x => x.id === state.selectedFacility);
+  const dateObj = dates.find(d => formatDate(d) === state.selectedDate);
+  document.getElementById('contentTitle').textContent = f.name;
+
+  if (state.error) {
+    document.getElementById('contentSubtitle').textContent = '';
+    document.getElementById('slotsGrid').innerHTML = `
+      <div class="error-box" style="grid-column:1/-1">
+        <strong>⚠️ Could not load slots</strong>
+        ${state.error}
+        <br><br>
+        <button onclick="loadSlots()" style="padding:8px 16px;background:var(--booked);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600">Retry</button>
+      </div>`;
+    return;
+  }
+
+  if (state.loading) { renderSkeleton(); return; }
+
+  const avCount = state.slots.filter(s => s.status.toLowerCase() !== 'booked').length;
+  document.getElementById('contentSubtitle').textContent =
+    `${avCount} of ${state.slots.length} slots available · ${dateObj ? displayDate(dateObj) : ''}`;
+
+  if (state.slots.length === 0) {
+    document.getElementById('slotsGrid').innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted);font-size:14px">
+        No slots found for <strong>${f.name}</strong> on this date.<br>
+        Tomorrow's slots will appear after 9 PM IST tonight.
+      </div>`;
+    return;
+  }
+
+  const grid = document.getElementById('slotsGrid');
+  grid.innerHTML = '';
+
+  state.slots.forEach(slot => {
+    const isBooked = slot.status.toLowerCase() === 'booked';
+    const localInfo = state.localNames[slot.id];
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    card.innerHTML = `
+      <div class="slot-time">${slot.time_slot}</div>
+      <div class="slot-status ${isBooked ? 'booked' : 'available'}">${isBooked ? 'Booked' : 'Available'}</div>
+      ${isBooked && localInfo ? `
+        <div class="slot-booker">
+          <div class="booker-avatar">${localInfo.name.slice(0,2).toUpperCase()}</div>
+          <div>
+            <div class="booker-name">${localInfo.name}</div>
+            ${localInfo.phone ? `<div class="booker-phone">${localInfo.phone}</div>` : ''}
+          </div>
+        </div>` : ''}
+      <button class="book-btn ${isBooked ? 'booked' : 'available'}"
+        ${isBooked ? 'disabled' : `onclick="openModal('${slot.id}', '${slot.time_slot}')"`}>
+        ${isBooked ? 'Slot Taken' : 'Reserve Slot'}
+      </button>`;
+    grid.appendChild(card);
+  });
+}
+
+function render() { renderDateBar(); renderSidebar(); renderSlots(); }
+
+// ─── Data ─────────────────────────────────────────────────────────
+async function loadSlots() {
+  state.loading = true;
+  state.error = null;
+  renderSkeleton();
+  try {
+    state.slots = await fetchSlots(state.selectedFacility, state.selectedDate);
+    setConnectionBadge('connected');
+  } catch (err) {
+    state.error = err.message;
+    setConnectionBadge('error');
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+function selectDate(key) {
+  state.selectedDate = key;
+  renderDateBar();
+  loadSlots();
+}
+
+function selectFacility(id) {
+  state.selectedFacility = id;
+  renderSidebar();
+  loadSlots();
+}
+
+function openModal(slotId, timeStr) {
+  const f = facilities.find(x => x.id === state.selectedFacility);
+  const dateObj = dates.find(d => formatDate(d) === state.selectedDate);
+  state.pendingSlot = { slotId, timeStr };
+  document.getElementById('modalMeta').textContent = `${f.name} · ${dateObj ? displayDate(dateObj) : ''}`;
+  document.getElementById('modalTag').textContent = `${f.icon} ${timeStr}`;
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputPhone').value = '';
+  document.getElementById('inputName').style.borderColor = '';
+  document.getElementById('confirmBtn').disabled = false;
+  document.getElementById('confirmBtn').textContent = 'Confirm Booking';
+  document.getElementById('modalOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('inputName').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  state.pendingSlot = null;
+}
+
+async function confirmBooking() {
+  const name = document.getElementById('inputName').value.trim();
+  if (!name) {
+    document.getElementById('inputName').style.borderColor = '#c0392b';
+    document.getElementById('inputName').focus();
+    return;
+  }
+  const phone = document.getElementById('inputPhone').value.trim();
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Booking…';
+  try {
+    await updateSlotStatus(state.pendingSlot.slotId, 'booked');
+    state.localNames[state.pendingSlot.slotId] = { name, phone };
+    closeModal();
+    showToast(`Booked for ${name}!`);
+    await loadSlots();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Confirm Booking';
+    showToast('Booking failed — please try again');
+    console.error(err);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'modalOverlay') closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ─── Init ─────────────────────────────────────────────────────────
+renderDateBar();
+renderSidebar();
+loadSlots();
+</script>
+</body>
+</html>
